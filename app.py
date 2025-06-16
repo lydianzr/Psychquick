@@ -894,6 +894,19 @@ def index():
 @app.route('/chat', methods=['POST'])
 def chat():
     user_input = request.json.get('message', '').strip()
+    exit_keywords = ['stop', 'quit', 'end', 'exit', "that's all", 'no more']
+    if any(word in user_input.lower() for word in exit_keywords):
+        chat_state = session.get('chat_state')
+        if chat_state:
+            scores = chat_state.get('symptom_scores', {})
+            diagnosis, overall_severity, recommendations = apply_rules(scores)
+            session.clear()
+            final_response = format_response_for_frontend(diagnosis, overall_severity, recommendations)
+            final_response += "\n\n_You chose to end the chat. Thank you for using PsychQuick._ 💙"
+            return jsonify({"response": final_response})
+        else:
+            return jsonify({"response": "Session ended. Thank you for using PsychQuick. 💙"})
+
    
     # Initialize session state if it's a new conversation or session cleared
     if 'chat_state' not in session or not session['chat_state']:
