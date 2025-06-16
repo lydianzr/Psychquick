@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PsychQuick - Student Wellness Companion</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe, #e8f5e9); /* Light Blue to Light Green */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Custom scrollbar styles for the chat history */
+        .chat-history::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-history::-webkit-scrollbar-track {
+            background: #f0f8ff;
+            border-radius: 10px;
+        }
+
+        .chat-history::-webkit-scrollbar-thumb {
+            background-color: #90caf9;
+            border-radius: 10px;
+            border: 2px solid #f0f8ff;
+        }
+
+        /* Styling for markdown within messages */
+        .markdown-content {
+            /* This is the key fix for long URLs and text wrapping */
+            word-wrap: break-word; /* Standard property */
+            overflow-wrap: break-word; /* For better browser support */
+            white-space: pre-wrap; /* Preserve whitespace, but allow wrapping */
+        }
+        .markdown-content h1 {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 0.5em;
+            color: #1e3a8a;
+        }
+        .markdown-content h2 {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            color: #1e3a8a;
+        }
+        .markdown-content strong {
+            font-weight: 600;
+        }
+        .markdown-content ul {
+            list-style-type: disc; /* Ensure browser default bullets */
+            margin-left: 1.5em;
+            padding-left: 0.5em;
+        }
+        .markdown-content ol {
+            list-style-type: decimal;
+            margin-left: 1.5em;
+            padding-left: 0.5em;
+        }
+        .markdown-content li {
+            margin-bottom: 0.5em;
+        }
+        .markdown-content p {
+            margin-bottom: 1em;
+            line-height: 1.5;
+        }
+        .markdown-content a {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+        .markdown-content a:hover {
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-xl w-full bg-white rounded-xl shadow-2xl p-6 sm:p-8 flex flex-col h-[90vh] max-h-[700px]">
+        <!-- Header Section -->
+        <header class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-700 mb-2 flex items-center justify-center">
+                <i class="fas fa-brain text-blue-500 mr-3"></i> PsychQuick
+            </h1>
+            <p class="text-sm sm:text-base text-gray-500 italic">Your Confidential Student Wellness Companion</p>
+        </header>
+
+        <!-- Chat History Area -->
+        <div id="chat-history" class="chat-history flex-grow overflow-y-auto pr-4 mb-6 space-y-4">
+            <!-- Initial bot message -->
+            <div class="flex justify-start">
+                <div class="bg-blue-50 text-gray-800 p-4 rounded-xl shadow-sm max-w-[80%] text-sm sm:text-base">
+                    Hello! I'm PsychQuick, your confidential wellness companion. Please describe any symptoms you are experiencing. For example, 'I feel sad and tired all the time.' or 'I worry a lot about the future.' You can also mention if you have any pre-existing medical conditions or are currently taking any medications.
+                </div>
+            </div>
+            <!-- Chat messages will be appended here by JavaScript -->
+        </div>
+
+        <!-- Typing Indicator / Loading State -->
+        <div id="loading-indicator" class="hidden text-center text-blue-500 text-sm mb-4">
+            <i class="fas fa-spinner fa-spin mr-2"></i> Thinking...
+        </div>
+
+        <!-- Input Area -->
+        <div class="flex items-center">
+            <input type="text" id="user-input" placeholder="Tell me how you're feeling..."
+                   class="flex-grow p-3 rounded-lg border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 text-sm sm:text-base">
+            <button id="send-button"
+                    class="ml-2 p-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 ease-in-out">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+
+        // Function to append messages to the chat history
+        function appendMessage(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('flex', 'mb-2');
+
+            const messageContent = document.createElement('div');
+            messageContent.classList.add('p-3', 'rounded-xl', 'shadow-sm', 'text-sm', 'sm:text-base', 'markdown-content');
+
+            // Use marked.js for proper markdown parsing
+            messageContent.innerHTML = marked.parse(message); 
+
+            if (sender === 'user') {
+                messageDiv.classList.add('justify-end');
+                messageContent.classList.add('bg-blue-600', 'text-white', 'max-w-[80%]');
+            } else {
+                messageDiv.classList.add('justify-start');
+                messageContent.classList.add('bg-blue-50', 'text-gray-800', 'max-w-[80%]');
+            }
+            messageDiv.appendChild(messageContent);
+            chatHistory.appendChild(messageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll to the latest message
+        }
+
+        // Function to send messages to the Flask backend
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            appendMessage('user', message);
+            userInput.value = ''; // Clear input field
+
+            loadingIndicator.classList.remove('hidden'); // Show loading indicator
+            sendButton.disabled = true; // Disable send button
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                appendMessage('bot', data.response);
+            } catch (error) {
+                console.error('Error sending message:', error);
+                // Provide a user-friendly error message in the chat
+                appendMessage('bot', 'Oops! It looks like there was a problem with my response. Please try again or refresh the page if the issue persists.');
+            } finally {
+                loadingIndicator.classList.add('hidden'); // Hide loading indicator
+                sendButton.disabled = false; // Enable send button
+                userInput.focus(); // Focus input field
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize marked.js for markdown parsing
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+        script.onload = () => {
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+        };
+        document.head.appendChild(script);
+
+        // Focus on input when page loads
+        window.onload = () => {
+            userInput.focus();
+        };
+    </script>
+</body>
+</html>
